@@ -20,6 +20,8 @@ servers: you need an internet connection and an API key, not a graphics card or 
 Every request is paid in US dollars from a prepaid balance, and each node shows its price before it
 runs.
 
+![A ComfyUI graph built from SpicyAPI nodes: Z-Image Spicy Pro text to image feeding Wan 2.2 Spicy image to video, each node showing its price badge and the final charge](docs/images/workflow-text-image-video.jpg)
+
 <!-- stats:start -->
 **189 model nodes** (104 video, 69 image, 16 audio) from 117 model families, plus 25 text models in one Chat node.
 <!-- stats:end -->
@@ -52,8 +54,12 @@ Then restart ComfyUI. Prefer not to use git? Download the
 1. **Add your key.** Open **Settings > SpicyAPI**, paste a key from
    [spicyapi.ai/console/keys](https://spicyapi.ai/console/keys); a notice shows your balance. Restart
    ComfyUI once so the node list comes from your account.
+
+   ![The SpicyAPI section of ComfyUI's settings: a masked API key and a max cost per run](docs/images/settings.jpg)
 2. **Add a model node.** Double-click the canvas and type a model name (`seedance`, `kling`, `wan`,
    `suno`, `nano banana`...), or browse **SpicyAPI > Video / Image / Audio** in the node menu.
+
+   ![ComfyUI node search for "seedance spicy" listing SpicyAPI video nodes, with the model description and starting price in the preview panel](docs/images/node-search.jpg)
 3. **Connect and run.** Wire a **Load Image** into the node's image input if the model takes one,
    connect **Save Image**, **Save Video** or **Save Audio** to its output, and press Run. The node
    shows its progress, then what the run cost.
@@ -132,6 +138,8 @@ Every node with its model ID and starting price: [MODELS.md](MODELS.md).
 - **SpicyAPI LoRA** adds a LoRA weights file by URL to models with LoRA support. Chain several to
   stack them.
 
+![A SpicyAPI LoRA node with a pixel-art LoRA link feeding Z-Image Turbo LoRA, and the pixel-art result](docs/images/lora-chain.jpg)
+
 ## Costs and safety
 
 - **Price on the node.** Each node's badge shows the current rate for the options you picked, for
@@ -178,7 +186,8 @@ environment variable.
 
 Yes, with the LoRA model nodes (their names end in `LoRA`). Add a **SpicyAPI LoRA** node with a
 direct download link to a `.safetensors` file and its strength, and connect it to the model node's
-`loras` input. The link must open without a login.
+`loras` input. The link must open without a login. The **lora** template comes ready to run with an
+Apache-2.0 pixel-art LoRA for Z-Image Turbo (by tarn59 on Hugging Face); swap in your own link.
 
 ### A model I saw on spicyapi.ai is not in my node list
 

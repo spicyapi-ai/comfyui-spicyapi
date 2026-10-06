@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- Example workflows get real thumbnails in ComfyUI's template browser, and the LoRA example comes
+  ready to run with an Apache-2.0 pixel-art LoRA.
+- Every model node's description links to its page on spicyapi.ai (prices, examples, parameters).
+- README screenshots of the settings panel, node search and a LoRA chain.
+
 ## 0.1.0
 
 First release.

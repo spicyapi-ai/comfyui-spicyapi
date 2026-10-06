@@ -55,11 +55,11 @@
         "Node name for S&R": "SpicyAPI_LoRA"
       },
       "widgets_values": [
-        "",
+        "https://huggingface.co/tarn59/pixel_art_style_lora_z_image_turbo/resolve/main/pixel_art_style_z_image_turbo.safetensors",
         1
       ],
       "widgets_values_named": {
-        "url": "",
+        "url": "https://huggingface.co/tarn59/pixel_art_style_lora_z_image_turbo/resolve/main/pixel_art_style_z_image_turbo.safetensors",
         "scale": 1
       }
     },
@@ -135,14 +135,14 @@
         "Node name for S&R": "SpicyAPI_alibaba_z_image_turbo_lora_text_to_image"
       },
       "widgets_values": [
-        "Put the LoRA trigger word first, then describe the picture",
+        "Pixel art style. A woman in a red silk dress and a man in a dark suit slow dancing in a dim jazz bar, warm lamp light, cozy retro game scene",
         "1:1",
         "jpeg",
         0,
         "fixed"
       ],
       "widgets_values_named": {
-        "prompt": "Put the LoRA trigger word first, then describe the picture",
+        "prompt": "Pixel art style. A woman in a red silk dress and a man in a dark suit slow dancing in a dim jazz bar, warm lamp light, cozy retro game scene",
         "aspect_ratio": "1:1",
         "output_format": "jpeg",
         "seed": 0,
