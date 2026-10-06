@@ -2,7 +2,7 @@
 
 # SpicyAPI for ComfyUI
 
-**Seedance, Kling, Wan, MiniMax Hailuo, Suno, GPT Image, Nano Banana and more AI models as ComfyUI nodes. No GPU, no model downloads.**
+**Seedance, Kling, Wan, MiniMax H3, Suno, GPT Image, Nano Banana and more AI models as ComfyUI nodes. No GPU, no model downloads.**
 
 [Get an API key](https://spicyapi.ai/console/keys) · [Setup guide](https://docs.spicyapi.ai/docs/comfyui) · [All models](https://spicyapi.ai/models) · [Status](https://status.spicyapi.ai)
 
@@ -161,7 +161,7 @@ Every node with its model ID and starting price: [MODELS.md](MODELS.md).
 Install this pack and add your key, then add the **Seedance 2.5 · Image to Video** node (or any
 other Seedance node), connect **Load Image** to its `image` input and **Save Video** to its
 `video` output, write a prompt and run. Resolution, duration and audio are options on the node.
-The same steps work for Kling, Wan, MiniMax Hailuo, Vidu and LTX video models.
+The same steps work for Kling, Wan, MiniMax H3, Vidu and LTX video models.
 
 ### Do I need a GPU or to download model weights?
 
