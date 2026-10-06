@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-spicyapi"
 description = "Every SpicyAPI image, video and audio model as a ComfyUI node: Seedance, Kling, Wan, MiniMax, Suno, GPT Image, Nano Banana and 180+ more, billed per request in USD."
-version = "0.1.1"
+version = "0.1.2"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
 # Nothing to install: the nodes use only what ComfyUI already ships (aiohttp, torch, Pillow, PyAV).

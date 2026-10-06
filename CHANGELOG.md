@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- The registry package leaves out tests, maintainer scripts, screenshots and CI files
+  (`.comfyignore`); they stay in the GitHub repository. No change to the nodes.
+
 ## 0.1.1
 
 - Example workflows get real thumbnails in ComfyUI's template browser, and the LoRA example comes

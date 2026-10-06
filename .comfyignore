@@ -1,0 +1,6 @@
+# Files the published package does not need: ComfyUI never loads them.
+# Tests and maintainer scripts stay in the repository on GitHub.
+tests/
+scripts/
+docs/
+.github/
