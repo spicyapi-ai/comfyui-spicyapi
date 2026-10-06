@@ -1,0 +1,29 @@
+[project]
+name = "comfyui-spicyapi"
+description = "Every SpicyAPI image, video and audio model as a ComfyUI node: Seedance, Kling, Wan, MiniMax, Suno, GPT Image, Nano Banana and 180+ more, billed per request in USD."
+version = "0.1.0"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+# Nothing to install: the nodes use only what ComfyUI already ships (aiohttp, torch, Pillow, PyAV).
+dependencies = []
+classifiers = [
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/spicyapi-ai/comfyui-spicyapi"
+Documentation = "https://docs.spicyapi.ai"
+"Bug Tracker" = "https://github.com/spicyapi-ai/comfyui-spicyapi/issues"
+
+[tool.comfy]
+PublisherId = "spicyapi"
+DisplayName = "SpicyAPI"
+Icon = "https://spicyapi.ai/icon.png"
+includes = []
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
