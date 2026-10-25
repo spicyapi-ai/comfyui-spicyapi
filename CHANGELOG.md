@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3
+
+- Nodes for models that take no seed (Seedream, for example) get a local `seed` widget with
+  **control after generate**. It is never sent to the model; set it to `randomize` or `increment`
+  to get a new result each time you queue the same graph. It starts on `fixed`, so a repeated queue
+  still reuses the last result instead of billing again.
+
 ## 0.1.2
 
 - The registry package leaves out tests, maintainer scripts, screenshots and CI files

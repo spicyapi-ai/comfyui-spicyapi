@@ -148,6 +148,8 @@ Every node with its model ID and starting price: [MODELS.md](MODELS.md).
   above it stops before anything is charged.
 - **No surprise re-runs.** Seeds start on `fixed`, so queueing the same graph twice reuses the
   first result. Switch **control after generate** to `randomize` for a new result each run.
+  Models that take no seed (Seedream, for example) still get a `seed` widget for this; it is
+  never sent to the model and only decides whether the node runs again.
 - **Your key stays out of shared files.** It is stored in the ComfyUI user folder
   (`user/spicyapi/config.json`, readable by your account only), never in a workflow or the
   metadata of a saved image. On a server, set `SPICY_API_KEY` instead.

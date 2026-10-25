@@ -8,6 +8,7 @@ from spicyapi_nodes.fields import (
     OMIT_NUMBER,
     build_fields,
     category_for,
+    needs_rerun_seed,
     node_id_for,
     plan_outputs,
     widget_to_value,
@@ -96,6 +97,13 @@ class FieldMappingTest(unittest.TestCase):
         self.assertIn("Smart", duration.options)
         self.assertEqual(widget_to_value(duration, "Smart"), -1)
         self.assertEqual(widget_to_value(duration, "8"), 8)
+
+    def test_models_without_a_seed_get_a_local_one(self):
+        models = load_models()
+        seedream = build_fields(models["bytedance/seedream-5.0-flash/edit"]["inputSchema"])
+        self.assertTrue(needs_rerun_seed(seedream))
+        z_image = build_fields(models["alibaba/z-image-turbo-lora/text-to-image"]["inputSchema"])
+        self.assertFalse(needs_rerun_seed(z_image))
 
     def test_seed_is_always_sent(self):
         seed = fields_of(load_models()["alibaba/z-image-turbo-lora/text-to-image"]["inputSchema"])["seed"]

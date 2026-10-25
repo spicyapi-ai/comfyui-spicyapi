@@ -132,6 +132,24 @@ def _tooltip(prop: dict[str, Any], extra: str = "") -> str:
     return f"{text} {extra}".strip() if extra else text
 
 
+RERUN_SEED = "seed"
+RERUN_SEED_TOOLTIP = (
+    "This model takes no seed, so the number is never sent. Changing it makes ComfyUI run the "
+    "node again: set 'control after generate' to randomize for a new result on every run; every "
+    "run is billed."
+)
+
+
+def needs_rerun_seed(specs: list[FieldSpec]) -> bool:
+    """True when the model has no field named seed.
+
+    ComfyUI reuses a node's last result while its inputs stay the same, and for a model with a
+    real seed that seed is how you ask for a new one. A model without one (Seedream, for example)
+    gets a local seed widget that only changes the node's inputs.
+    """
+    return all(spec.name != RERUN_SEED for spec in specs)
+
+
 def build_fields(schema: dict[str, Any]) -> list[FieldSpec]:
     """Map every visible schema property to a node input, ordered as the Playground orders them."""
     properties = schema.get("properties") or {}

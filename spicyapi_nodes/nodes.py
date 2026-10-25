@@ -26,11 +26,14 @@ from .client import (
 )
 from .fields import (
     OMIT,
+    RERUN_SEED,
+    RERUN_SEED_TOOLTIP,
     FieldSpec,
     OutputPlan,
     build_fields,
     category_for,
     model_page,
+    needs_rerun_seed,
     node_id_for,
     plan_outputs,
     widget_to_value,
@@ -465,6 +468,23 @@ async def run_model(
         return outputs
 
 
+def _inputs_for(specs: list[FieldSpec]) -> list[Any]:
+    inputs = [_input_for(spec) for spec in specs]
+    if needs_rerun_seed(specs):
+        inputs.append(
+            io.Int.Input(
+                RERUN_SEED,
+                default=0,
+                min=0,
+                max=2**31 - 1,
+                # Fixed for the same reason as a real seed: queueing twice must not bill twice.
+                control_after_generate=io.ControlAfterGenerate.fixed,
+                tooltip=RERUN_SEED_TOOLTIP,
+            )
+        )
+    return inputs
+
+
 def make_model_node(model: dict[str, Any]) -> type[io.ComfyNode]:
     specs = build_fields(model.get("inputSchema") or {})
     plan = plan_outputs(model)
@@ -491,7 +511,7 @@ def make_model_node(model: dict[str, Any]) -> type[io.ComfyNode]:
             display_name=str(model.get("displayName") or model["model"]),
             category=category_for(model),
             description=description,
-            inputs=[_input_for(spec) for spec in specs],
+            inputs=_inputs_for(specs),
             outputs=_outputs_for(plan),
             hidden=[io.Hidden.unique_id],
             search_aliases=aliases,
@@ -499,6 +519,8 @@ def make_model_node(model: dict[str, Any]) -> type[io.ComfyNode]:
 
     async def execute(cls: type[io.ComfyNode], **kwargs: Any) -> io.NodeOutput:
         unique_id = cls.hidden.unique_id if cls.hidden is not None else None
+        if needs_rerun_seed(specs):
+            kwargs.pop(RERUN_SEED, None)
         outputs = await run_model(model, specs, plan, unique_id, kwargs)
         return io.NodeOutput(*outputs)
 
