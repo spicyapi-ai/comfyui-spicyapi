@@ -82,6 +82,18 @@ class FieldMappingTest(unittest.TestCase):
         self.assertFalse(specs["reference_image_urls"].required)
         self.assertLessEqual(specs["reference_image_urls"].max_items, 16)
 
+    def test_optional_groups_need_no_socket_even_with_min_items(self):
+        # Wan 3.0 R2V: each group has minItems 1, but none is required, so images alone must work.
+        specs = fields_of(load_models()["alibaba/wan-3.0/reference-to-video"]["inputSchema"])
+        for name in ("reference_image_urls", "reference_video_urls", "reference_audio_urls"):
+            self.assertFalse(specs[name].required)
+            self.assertEqual(specs[name].min_items, 0, name)
+
+    def test_required_group_keeps_its_min_items(self):
+        spec = fields_of(load_models()["alibaba/wan-2.6/reference-to-video"]["inputSchema"])["reference_video_urls"]
+        self.assertTrue(spec.required)
+        self.assertEqual(spec.min_items, 1)
+
     def test_contiguous_duration_enum_is_a_slider(self):
         duration = fields_of(load_models()["bytedance/seedance-2.5/reference-to-video"]["inputSchema"])[
             "duration_seconds"

@@ -196,7 +196,8 @@ def _build_one(name: str, prop: dict[str, Any], ui: dict[str, Any], widget: Any,
                 base.default = ""
                 return base
             base.kind = media + "s"
-            base.min_items = int(prop.get("minItems") or (1 if required else 0))
+            # minItems only bounds the array when it is sent; an optional group may be left empty.
+            base.min_items = int(prop.get("minItems") or 1) if required else 0
             base.max_items = max(1, min(int(prop.get("maxItems") or MAX_SOCKETS), MAX_SOCKETS))
             return base
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Optional reference groups no longer force a connection. Nodes such as Wan 3.0 Reference to Video
+  required at least one reference video and one reference audio even though the model accepts
+  reference images alone; the first socket of an optional group is now optional too.
+
 ## 0.1.3
 
 - Nodes for models that take no seed (Seedream, for example) get a local `seed` widget with
