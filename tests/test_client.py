@@ -126,5 +126,16 @@ class ClientTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.calls["record"], 2)
 
 
+@unittest.skipIf(web is None, "aiohttp is not installed")
+class KeyCheckTest(unittest.TestCase):
+    def test_only_an_invalid_key_is_refused(self):
+        from spicyapi_nodes.client import SpicyApiError
+        from spicyapi_nodes.routes import _key_was_refused
+
+        self.assertTrue(_key_was_refused(SpicyApiError("bad key", status=401)))
+        self.assertFalse(_key_was_refused(SpicyApiError("no read_balance", status=403)))
+        self.assertFalse(_key_was_refused(SpicyApiError("server error", status=500)))
+
+
 if __name__ == "__main__":
     unittest.main()

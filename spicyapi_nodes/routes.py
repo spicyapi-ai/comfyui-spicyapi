@@ -56,6 +56,15 @@ async def _refresh_catalog(api_key: str) -> dict[str, Any]:
     }
 
 
+def _key_was_refused(error: SpicyApiError) -> bool:
+    """Only 401 means the key itself is bad.
+
+    Saving a key checks it by reading the balance. A 403 can be a valid key without the
+    read_balance permission, and that key still runs models, so it must not be turned away.
+    """
+    return error.status == 401
+
+
 def register() -> None:
     global _registered
     if _registered:
@@ -87,7 +96,7 @@ def register() -> None:
             async with SpicyClient(api_key, config.get_base_url()) as client:
                 balance = await client.balance()
         except SpicyApiError as error:
-            if error.status in (401, 403):
+            if _key_was_refused(error):
                 return web.json_response(
                     {"ok": False, "message": "SpicyAPI rejected this key. Copy it again from the console."},
                     status=400,

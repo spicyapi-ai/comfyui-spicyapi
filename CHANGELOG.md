@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5
+
+- A key that cannot read the account balance is no longer reported as rejected. Saving a key checks
+  it by reading the balance, so a valid key without the `read_balance` permission was turned away
+  even though it could run models. Only an invalid key (HTTP 401) is refused now.
+
 ## 0.1.4
 
 - Optional reference groups no longer force a connection. Nodes such as Wan 3.0 Reference to Video
