@@ -57,7 +57,7 @@ async function onKeyChange(value, previous) {
   const text = String(value ?? "").trim();
   if (text.startsWith(MASK)) return;
   if (!text) {
-    const response = await api.fetchApi("/spicyapi/api-key", { method: "DELETE" });
+    const response = await api.fetchApi("/spicyapi/api-key", { method: "DELETE", headers: { "X-SpicyAPI-Settings": "1" } });
     const status = await readJson(response);
     if (status.configured) {
       toast("warn", "SpicyAPI", "The key set through SPICY_API_KEY stays in use.");
@@ -69,7 +69,7 @@ async function onKeyChange(value, previous) {
   }
   const response = await api.fetchApi("/spicyapi/api-key", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-SpicyAPI-Settings": "1" },
     body: JSON.stringify({ apiKey: text }),
   });
   const result = await readJson(response);
@@ -104,7 +104,7 @@ async function onCostChange(value) {
   const amount = Number(value) || 0;
   const response = await api.fetchApi("/spicyapi/settings", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-SpicyAPI-Settings": "1" },
     body: JSON.stringify({ maxCostPerRun: amount < 0 ? 0 : amount }),
   });
   if (!response.ok) {

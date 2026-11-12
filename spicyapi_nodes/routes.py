@@ -65,6 +65,32 @@ def _key_was_refused(error: SpicyApiError) -> bool:
     return error.status == 401
 
 
+# The settings panel sends this header with every change. A plain cross-site form or a "simple"
+# request cannot add a custom header, so requiring it keeps another web page from changing the key
+# or the spending ceiling even when ComfyUI runs with --enable-cors-header (which turns off its own
+# cross-origin check). It is not a password: anyone who can reach the ComfyUI port can still send it,
+# which is what SPICYAPI_LOCK_SETTINGS is for.
+SETTINGS_HEADER = "X-SpicyAPI-Settings"
+
+
+def _refuse_change(request: web.Request, *, needs_json: bool) -> web.Response | None:
+    """Return an error response when a settings change must not go through, otherwise None."""
+    if config.settings_locked():
+        return web.json_response(
+            {
+                "ok": False,
+                "message": "SpicyAPI settings are locked on this server (SPICYAPI_LOCK_SETTINGS). "
+                "Set the key with the SPICY_API_KEY environment variable instead.",
+            },
+            status=403,
+        )
+    if request.headers.get(SETTINGS_HEADER) != "1":
+        return web.json_response({"ok": False, "message": "Change this from Settings > SpicyAPI."}, status=403)
+    if needs_json and request.content_type != "application/json":
+        return web.json_response({"ok": False, "message": "Send JSON."}, status=415)
+    return None
+
+
 def register() -> None:
     global _registered
     if _registered:
@@ -83,6 +109,8 @@ def register() -> None:
 
     @routes.post("/spicyapi/api-key")
     async def save_key(request: web.Request) -> web.Response:
+        if (refused := _refuse_change(request, needs_json=True)) is not None:
+            return refused
         try:
             body = await request.json()
         except ValueError:
@@ -101,8 +129,16 @@ def register() -> None:
                     {"ok": False, "message": "SpicyAPI rejected this key. Copy it again from the console."},
                     status=400,
                 )
+            if error.status != 403:
+                # Could not reach SpicyAPI or it failed: we cannot tell whether this key is real,
+                # so keep the key that is already in use instead of storing an unchecked one.
+                log.warning("SpicyAPI: could not check the key, not saving it: %s", error)
+                return web.json_response(
+                    {"ok": False, "message": "Could not reach SpicyAPI to check this key. Try again in a moment."},
+                    status=502,
+                )
+            # 403: a valid key without the read_balance permission. It runs models, so keep it.
             verified = False
-            log.warning("SpicyAPI: saved the key without verifying it: %s", error)
         config.save_api_key(api_key)
         result: dict[str, Any] = {"ok": True, "verified": verified, **_status_payload()}
         if balance:
@@ -111,12 +147,16 @@ def register() -> None:
         return web.json_response(result)
 
     @routes.delete("/spicyapi/api-key")
-    async def delete_key(_: web.Request) -> web.Response:
+    async def delete_key(request: web.Request) -> web.Response:
+        if (refused := _refuse_change(request, needs_json=False)) is not None:
+            return refused
         config.clear_api_key()
         return web.json_response({"ok": True, **_status_payload()})
 
     @routes.post("/spicyapi/settings")
     async def save_settings(request: web.Request) -> web.Response:
+        if (refused := _refuse_change(request, needs_json=True)) is not None:
+            return refused
         try:
             body = await request.json()
         except ValueError:

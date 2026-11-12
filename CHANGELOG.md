@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.6
+
+- Settings are harder to change from outside the settings panel. Saving or removing the key and
+  changing the spending limit now need a header the panel sends and, for saves, a JSON body, so
+  another web page cannot change them even when ComfyUI runs with `--enable-cors-header`.
+- New `SPICYAPI_LOCK_SETTINGS=1` turns those changes off entirely. Use it, together with
+  `SPICY_API_KEY`, on a ComfyUI that other people can reach.
+- A key is no longer saved unchecked when SpicyAPI cannot be reached; the key already in use stays
+  in use and you are asked to try again.
+- Thanks to Shiqiang Chen for reporting this responsibly.
+
 ## 0.1.5
 
 - A key that cannot read the account balance is no longer reported as rejected. Saving a key checks

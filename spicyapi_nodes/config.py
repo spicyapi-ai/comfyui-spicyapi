@@ -24,6 +24,7 @@ DEFAULT_BASE_URL = "https://api.spicyapi.ai"
 ENV_API_KEY = "SPICY_API_KEY"
 ENV_BASE_URL = "SPICY_API_BASE_URL"
 ENV_CONFIG_DIR = "SPICYAPI_COMFYUI_HOME"
+ENV_LOCK_SETTINGS = "SPICYAPI_LOCK_SETTINGS"
 
 
 def config_dir() -> Path:
@@ -68,6 +69,11 @@ def _write(data: dict[str, Any]) -> None:
         with contextlib.suppress(OSError):
             os.unlink(temp_path)
         raise
+
+
+def settings_locked() -> bool:
+    """True when SPICYAPI_LOCK_SETTINGS turns off changing the key and ceiling over HTTP."""
+    return os.environ.get(ENV_LOCK_SETTINGS, "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def get_api_key() -> tuple[str, str]:

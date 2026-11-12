@@ -202,6 +202,12 @@ release is used.
 Yes, as long as that machine can reach `api.spicyapi.ai`. Set `SPICY_API_KEY` in its environment,
 or enter the key in Settings from the browser. Proxies set through `HTTPS_PROXY` are honoured.
 
+ComfyUI has no login of its own: anyone who can reach its port (a LAN, `--listen`, a shared pod)
+can use it, including the SpicyAPI settings. On a machine other people can reach, set the key with
+`SPICY_API_KEY` and also set `SPICYAPI_LOCK_SETTINGS=1`, which stops the key and the spending limit
+from being changed over HTTP. A key from the environment always takes precedence over one saved in
+Settings.
+
 ## Troubleshooting
 
 | You see | What to do |
