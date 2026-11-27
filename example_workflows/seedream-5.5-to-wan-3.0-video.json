@@ -1,0 +1,394 @@
+{
+  "id": "b6c2e41d-5b11-4f88-9b70-1a95e2f5c301",
+  "revision": 0,
+  "last_node_id": 4,
+  "last_link_id": 3,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "SpicyAPI_bytedance_seedream_5_5_text_to_image",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        400,
+        280
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "COMBO",
+          "widget": {
+            "name": "aspect_ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "output_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "output_format"
+          },
+          "link": null
+        },
+        {
+          "name": "background",
+          "type": "COMBO",
+          "widget": {
+            "name": "background"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            1,
+            2
+          ]
+        },
+        {
+          "name": "alpha",
+          "type": "MASK",
+          "links": null
+        },
+        {
+          "name": "task id",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SpicyAPI_bytedance_seedream_5_5_text_to_image"
+      },
+      "widgets_values": [
+        "Cinematic wide shot of a rain-slicked Tokyo jazz alley at dusk, warm amber lantern glow reflecting on wet cobblestones, subtle mist, 35mm film photography",
+        "16:9",
+        "2k",
+        "png",
+        "auto",
+        0,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "prompt": "Cinematic wide shot of a rain-slicked Tokyo jazz alley at dusk, warm amber lantern glow reflecting on wet cobblestones, subtle mist, 35mm film photography",
+        "aspect_ratio": "16:9",
+        "resolution": "2k",
+        "output_format": "png",
+        "background": "auto",
+        "seed": 0,
+        "fixed": "fixed"
+      }
+    },
+    {
+      "id": 2,
+      "type": "SaveImage",
+      "pos": [
+        480,
+        440
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "spicyapi/seedream-5.5-keyframe"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "spicyapi/seedream-5.5-keyframe"
+      }
+    },
+    {
+      "id": 3,
+      "type": "SpicyAPI_alibaba_wan_3_0_image_to_video",
+      "pos": [
+        500,
+        60
+      ],
+      "size": [
+        420,
+        344
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_url",
+          "type": "IMAGE",
+          "link": 2
+        },
+        {
+          "name": "last_image_url",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "COMBO",
+          "widget": {
+            "name": "aspect_ratio"
+          },
+          "link": null
+        },
+        {
+          "name": "enable_thinking",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_thinking"
+          },
+          "link": null
+        },
+        {
+          "name": "resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        },
+        {
+          "name": "duration_seconds",
+          "type": "COMBO",
+          "widget": {
+            "name": "duration_seconds"
+          },
+          "link": null
+        },
+        {
+          "name": "generate_audio",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "generate_audio"
+          },
+          "link": null
+        },
+        {
+          "name": "enable_prompt_expansion",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_prompt_expansion"
+          },
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "task id",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SpicyAPI_alibaba_wan_3_0_image_to_video"
+      },
+      "widgets_values": [
+        "Slow dolly forward down the rain-wet alley as amber lanterns sway gently in the breeze and soft rain ripples in the puddles",
+        "16:9",
+        false,
+        "1080p",
+        "5",
+        true,
+        false,
+        0,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "prompt": "Slow dolly forward down the rain-wet alley as amber lanterns sway gently in the breeze and soft rain ripples in the puddles",
+        "aspect_ratio": "16:9",
+        "enable_thinking": false,
+        "resolution": "1080p",
+        "duration_seconds": "5",
+        "generate_audio": true,
+        "enable_prompt_expansion": false,
+        "seed": 0,
+        "fixed": "fixed"
+      }
+    },
+    {
+      "id": 4,
+      "type": "SaveVideo",
+      "pos": [
+        980,
+        60
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 3
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "name": "format.codec",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "format.codec"
+          },
+          "link": null
+        },
+        {
+          "name": "format",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "name": "codec",
+          "shape": 7,
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "spicyapi/seedream-5.5-wan-3.0",
+        "auto",
+        "auto",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "spicyapi/seedream-5.5-wan-3.0",
+        "format": "auto",
+        "format.codec": "auto",
+        "codec": "auto"
+      }
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      1,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

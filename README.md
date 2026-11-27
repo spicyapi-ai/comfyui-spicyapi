@@ -30,7 +30,7 @@ runs.
 
 | | |
 | --- | --- |
-| What it adds | One node per hosted model, a Chat node for text models, and a LoRA node |
+| What it adds | One node per hosted model, a Chat node for text models, a Managed Workflow node, and a LoRA node |
 | Inputs and outputs | Standard ComfyUI `IMAGE`, `MASK`, `VIDEO`, `AUDIO` and `STRING` |
 | Hardware | None: models run on SpicyAPI, so it works on laptops, Macs and CPU-only machines |
 | Dependencies | None beyond ComfyUI itself (Python 3.10+, the V3 node API; tested with ComfyUI 0.39) |
@@ -65,8 +65,10 @@ Then restart ComfyUI. Prefer not to use git? Download the
    shows its progress, then what the run cost.
 
 Prefer to start from a working graph? Open ComfyUI's template browser: under **comfyui-spicyapi** you
-will find text to image, image to video, a chat model writing the prompt for an image model, text
-to speech, and LoRA.
+will find text to image, image to video, **Seedream 5.5 to Wan 3.0 HD video**
+(`example_workflows/seedream-5.5-to-wan-3.0-video.json`), **Managed Workflow: Image to Video HD**
+(`example_workflows/managed-workflow-image-to-video-hd.json`), a chat model writing the prompt for
+an image model, text to speech, and LoRA.
 
 ## Supported models
 
@@ -135,6 +137,13 @@ Every node with its model ID and starting price: [MODELS.md](MODELS.md).
   background removal also returns an `alpha` mask. Transcription returns `STRING`.
 - **SpicyAPI Chat** sends a prompt, optional system instructions and optional images to any text
   model on SpicyAPI and returns the answer as a `STRING`, ready to wire into another node's prompt.
+- **SpicyAPI Workflow Run** (`SpicyAPIWorkflowRun`, under **SpicyAPI > Workflows**) runs an official
+  multi-step managed workflow preset on SpicyAPI and polls until the final image or video is ready:
+  - `image-to-video-hd`: refines a source image with a prompt and animates it into an HD video (`VIDEO`).
+  - `image-to-4k-upscale`: refines a source image and upscales it to 2K/4K/8K detail (`IMAGE`).
+  - `video-extend-hd`: extends an existing clip with prompt-directed motion and upscales it to HD/4K (`VIDEO`).
+  Each step is billed individually at its published rate; unexecuted steps are never charged and
+  failed steps are refunded automatically.
 - **SpicyAPI LoRA** adds a LoRA weights file by URL to models with LoRA support. Chain several to
   stack them.
 

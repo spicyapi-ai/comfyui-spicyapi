@@ -21,11 +21,14 @@ from .client import (
     SpicyApiError,
     SpicyClient,
     SpicyTaskFailed,
+    SpicyWorkflowFailed,
     output_assets,
     output_text,
 )
 from .fields import (
+    MODEL_DEFAULT,
     OMIT,
+    OMIT_NUMBER,
     RERUN_SEED,
     RERUN_SEED_TOOLTIP,
     FieldSpec,
@@ -39,6 +42,17 @@ from .fields import (
     widget_to_value,
 )
 from .pricing import badge_for, describe_price, format_usd
+from .workflows import (
+    WORKFLOW_ASPECT_RATIOS,
+    WORKFLOW_AUDIO_OPTIONS,
+    WORKFLOW_PRESETS,
+    WORKFLOW_RESOLUTIONS,
+    build_workflow_input,
+    first_asset_url,
+    preset_media_kind,
+    workflow_done_line,
+    workflow_status_line,
+)
 
 log = logging.getLogger("spicyapi")
 
@@ -531,6 +545,278 @@ def make_model_node(model: dict[str, Any]) -> type[io.ComfyNode]:
     )
 
 
+# -- Managed Workflows -----------------------------------------------------
+
+
+async def run_workflow_preset(
+    *,
+    preset: str,
+    prompt: str,
+    image: Any = None,
+    video: Any = None,
+    media_url: str = "",
+    edit_prompt: str = "",
+    video_prompt: str = "",
+    aspect_ratio: str = MODEL_DEFAULT,
+    resolution: str = MODEL_DEFAULT,
+    duration_seconds: int = OMIT_NUMBER,
+    generate_audio: str = MODEL_DEFAULT,
+    extra_options_json: str = "",
+    node_id: str | None = None,
+) -> list[Any]:
+    from comfy_execution.graph_utils import ExecutionBlocker
+
+    api_key, _ = config.get_api_key()
+    if not api_key:
+        raise ValueError(NO_KEY_MESSAGE)
+
+    started = time.monotonic()
+    expected_media = preset_media_kind(preset)
+    async with SpicyClient(api_key, config.get_base_url(), interrupt_check=_interrupt_check) as client:
+        _show(node_id, f"Preparing {preset}...")
+        resolved_media_url = str(media_url or "").strip()
+        if expected_media == "image" and image is not None:
+            pictures = media.split_image_batch(image)
+            if pictures:
+                if len(pictures) > 1:
+                    log.info("SpicyAPI: workflow '%s' takes one image; using the first of %d", preset, len(pictures))
+                resolved_media_url = await _upload(client, *media.encode_image(pictures[0]))
+        elif expected_media == "video" and video is not None:
+            resolved_media_url = await _upload(client, *media.encode_video(video))
+
+        payload = build_workflow_input(
+            preset,
+            prompt=prompt,
+            media_url=resolved_media_url,
+            edit_prompt=edit_prompt,
+            video_prompt=video_prompt,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
+            duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
+            extra_options_json=extra_options_json,
+        )
+
+        _show(node_id, f"Starting {preset}...")
+        created = await client.run_workflow(preset, payload, idempotency_key=str(uuid.uuid4()))
+        workflow_id = str(created.get("workflowId") or "")
+        if not workflow_id:
+            raise SpicyApiError("workflow run started without returning a workflowId")
+
+        def on_poll(record: dict[str, Any], elapsed: float) -> None:
+            _show(node_id, workflow_status_line(record, elapsed))
+
+        timeout = float(DEFAULT_TASK_TIMEOUT_SECONDS * 2)
+        try:
+            final = await client.wait_for_workflow(workflow_id, timeout_seconds=timeout, on_poll=on_poll)
+        except BaseException as error:
+            if type(error).__name__ == "InterruptProcessingException":
+                log.warning(
+                    "SpicyAPI: stopped waiting for workflow %s. Its current step keeps running on "
+                    "SpicyAPI; check progress in the console under Logs.",
+                    workflow_id,
+                )
+                _show(node_id, f"Stopped waiting. Workflow {workflow_id} may still be running.")
+            raise
+
+        if final.get("state") != "succeeded":
+            _show(node_id, f"Failed: {final.get('errorCode') or final.get('state')}\nWorkflow {workflow_id}")
+            raise SpicyWorkflowFailed(final)
+
+        _show(node_id, "Downloading workflow result...")
+        assets = output_assets(final)
+        video_blobs = await _download_all(client, assets, "video/", limit=1)
+        image_blobs = await _download_all(client, assets, "image/")
+
+        if video_blobs:
+            video_out: Any = media.decode_video(video_blobs[0])
+            images_out: Any = (
+                media.decode_images(image_blobs)[0]
+                if image_blobs
+                else ExecutionBlocker("This workflow preset returned a video; connect the video output.")
+            )
+        elif image_blobs:
+            images_out = media.decode_images(image_blobs)[0]
+            video_out = ExecutionBlocker("This workflow preset returned an image; connect the images output.")
+        else:
+            raise ValueError(f"workflow {workflow_id} finished without downloadable image or video output")
+
+        deliverable_url = first_asset_url(final)
+        summary_json = json.dumps(final, ensure_ascii=False, indent=2)
+        _show(node_id, workflow_done_line(final, time.monotonic() - started))
+        return [video_out, images_out, deliverable_url, workflow_id, summary_json]
+
+
+class SpicyAPIWorkflowRun(io.ComfyNode):
+    @classmethod
+    def define_schema(cls) -> io.Schema:
+        return io.Schema(
+            node_id="SpicyAPIWorkflowRun",
+            display_name="SpicyAPI Workflow Run",
+            category="SpicyAPI/Workflows",
+            description=(
+                "Run an official SpicyAPI managed multi-step workflow preset (image-to-video-hd, "
+                "image-to-4k-upscale, or video-extend-hd) and poll until the final media is ready. "
+                "Billed step by step at each model's published rate; unexecuted steps are never charged."
+            ),
+            inputs=[
+                io.Combo.Input(
+                    "preset",
+                    options=list(WORKFLOW_PRESETS),
+                    default=WORKFLOW_PRESETS[0],
+                    tooltip="Managed preset pipeline to execute on SpicyAPI.",
+                ),
+                io.String.Input(
+                    "prompt",
+                    multiline=True,
+                    default="",
+                    tooltip="Primary prompt applied to the workflow steps.",
+                ),
+                io.Image.Input(
+                    "image",
+                    optional=True,
+                    tooltip="Source image for image-to-video-hd or image-to-4k-upscale.",
+                ),
+                io.Video.Input(
+                    "video",
+                    optional=True,
+                    tooltip="Source video for video-extend-hd.",
+                ),
+                io.String.Input(
+                    "media_url",
+                    default="",
+                    placeholder="Optional https:// or spicy:// URL when no image/video is connected",
+                    tooltip="Optional source image or video URL used when the matching socket is not connected.",
+                    advanced=True,
+                ),
+                io.String.Input(
+                    "edit_prompt",
+                    multiline=True,
+                    default="",
+                    tooltip="Optional image editing prompt override for image-to-video-hd.",
+                    advanced=True,
+                ),
+                io.String.Input(
+                    "video_prompt",
+                    multiline=True,
+                    default="",
+                    tooltip="Optional motion prompt override for image-to-video-hd.",
+                    advanced=True,
+                ),
+                io.Combo.Input(
+                    "aspect_ratio",
+                    options=list(WORKFLOW_ASPECT_RATIOS),
+                    default=MODEL_DEFAULT,
+                    tooltip="Optional aspect ratio (image-to-video-hd, image-to-4k-upscale).",
+                    advanced=True,
+                ),
+                io.Combo.Input(
+                    "resolution",
+                    options=list(WORKFLOW_RESOLUTIONS),
+                    default=MODEL_DEFAULT,
+                    tooltip=(
+                        "Target output resolution (720p/1080p for image-to-video-hd; 2k/4k/8k for "
+                        "image-to-4k-upscale; 720p/1080p/2k/4k for video-extend-hd)."
+                    ),
+                    advanced=True,
+                ),
+                io.Int.Input(
+                    "duration_seconds",
+                    default=OMIT_NUMBER,
+                    min=OMIT_NUMBER,
+                    max=30,
+                    step=1,
+                    tooltip=(
+                        "Video duration in seconds (3-15 for image-to-video-hd, 4-30 for "
+                        "video-extend-hd). -1 uses the preset default."
+                    ),
+                    advanced=True,
+                ),
+                io.Combo.Input(
+                    "generate_audio",
+                    options=list(WORKFLOW_AUDIO_OPTIONS),
+                    default=MODEL_DEFAULT,
+                    tooltip="Optional audio generation toggle (image-to-video-hd, video-extend-hd).",
+                    advanced=True,
+                ),
+                io.String.Input(
+                    "extra_options_json",
+                    multiline=True,
+                    default="",
+                    tooltip=(
+                        "Optional JSON object for preset-specific fields such as output_format "
+                        "(image-to-4k-upscale) or extend_resolution (video-extend-hd)."
+                    ),
+                    advanced=True,
+                ),
+                io.Int.Input(
+                    RERUN_SEED,
+                    default=0,
+                    min=0,
+                    max=2**31 - 1,
+                    control_after_generate=io.ControlAfterGenerate.fixed,
+                    tooltip=(
+                        "Not sent to the workflow API. Change this value (or switch control after "
+                        "generate to randomize) to run the workflow again; every run is billed."
+                    ),
+                ),
+            ],
+            outputs=[
+                io.Video.Output("video", display_name="video"),
+                io.Image.Output("images", display_name="images"),
+                io.String.Output("media_url", display_name="media url"),
+                io.String.Output("workflow_id", display_name="workflow id"),
+                io.String.Output("result_json", display_name="result json"),
+            ],
+            hidden=[io.Hidden.unique_id],
+            search_aliases=[
+                "workflow",
+                "managed workflow",
+                "pipeline",
+                "spicyapi workflow",
+                "image-to-video-hd",
+                "image-to-4k-upscale",
+                "video-extend-hd",
+            ],
+        )
+
+    @classmethod
+    async def execute(
+        cls,
+        preset: str,
+        prompt: str,
+        media_url: str = "",
+        edit_prompt: str = "",
+        video_prompt: str = "",
+        aspect_ratio: str = MODEL_DEFAULT,
+        resolution: str = MODEL_DEFAULT,
+        duration_seconds: int = OMIT_NUMBER,
+        generate_audio: str = MODEL_DEFAULT,
+        extra_options_json: str = "",
+        seed: int = 0,
+        image: Any = None,
+        video: Any = None,
+    ) -> io.NodeOutput:
+        _ = seed
+        unique_id = cls.hidden.unique_id if cls.hidden is not None else None
+        outputs = await run_workflow_preset(
+            preset=preset,
+            prompt=prompt,
+            image=image,
+            video=video,
+            media_url=media_url,
+            edit_prompt=edit_prompt,
+            video_prompt=video_prompt,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
+            duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
+            extra_options_json=extra_options_json,
+            node_id=unique_id,
+        )
+        return io.NodeOutput(*outputs)
+
+
 # -- LoRA ------------------------------------------------------------------
 
 
@@ -709,7 +995,7 @@ def _badge_labels(specs: list[FieldSpec], badge: dict[str, Any]) -> dict[str, di
 
 def build_all(items: list[dict[str, Any]]) -> tuple[list[type[io.ComfyNode]], dict[str, Any]]:
     """Node classes for the catalogue, plus the price badge table keyed by node type."""
-    nodes: list[type[io.ComfyNode]] = [SpicyLoRA]
+    nodes: list[type[io.ComfyNode]] = [SpicyLoRA, SpicyAPIWorkflowRun]
     badges: dict[str, Any] = {}
     seen: set[str] = set()
     chat_models: list[dict[str, Any]] = []

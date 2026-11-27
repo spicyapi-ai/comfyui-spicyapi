@@ -104,6 +104,22 @@ class SpicyTaskFailed(RuntimeError):
         super().__init__(f"{code}: {message}{hint} (task {task.get('taskId')})")
 
 
+class SpicyWorkflowFailed(RuntimeError):
+    """A managed workflow reached a terminal state other than succeeded."""
+
+    def __init__(self, workflow: Mapping[str, Any]) -> None:
+        self.workflow = dict(workflow)
+        state = workflow.get("state")
+        code = workflow.get("errorCode") or state
+        message = workflow.get("errorMessage") or f"the workflow ended as {state}"
+        hint = ""
+        if code == "content_rejected":
+            hint = (
+                " The model declined this request. Unexecuted steps are not charged and failed steps are refunded."
+            )
+        super().__init__(f"{code}: {message}{hint} (workflow {workflow.get('workflowId')})")
+
+
 def _parse_retry_after(value: str | None) -> float | None:
     if not value:
         return None
@@ -336,7 +352,83 @@ class SpicyClient:
             await interruptible_sleep(interval, self.interrupt_check)
             interval = min(interval * 1.5, 10.0)
 
+    # -- Managed workflows ------------------------------------------------
+
+    async def list_workflows(self) -> list[dict[str, Any]]:
+        """List official managed preset pipelines."""
+        data = await self.request("GET", "/api/v1/workflows", timeout=20)
+        items = data.get("items") if isinstance(data, dict) else None
+        return [item for item in items or [] if isinstance(item, dict)]
+
+    async def run_workflow(
+        self,
+        preset: str,
+        input_data: Mapping[str, Any],
+        *,
+        idempotency_key: str,
+        retention_seconds: int | None = None,
+    ) -> dict[str, Any]:
+        """Start a managed preset workflow. Resends must reuse the same Idempotency-Key."""
+        headers = {"Idempotency-Key": idempotency_key}
+        if retention_seconds is not None and retention_seconds > 0:
+            headers["X-Spicy-Retention"] = str(int(retention_seconds))
+        return await self.request(
+            "POST",
+            "/api/v1/workflows/run",
+            body={"preset": preset, "input": dict(input_data)},
+            headers=headers,
+        )
+
+    async def get_workflow(self, workflow_id: str) -> dict[str, Any]:
+        """Fetch workflow progress and advance ready multi-step stages on the server."""
+        encoded = urllib.parse.quote(workflow_id, safe="")
+        return await self.request("GET", f"/api/v1/workflows/{encoded}")
+
+    async def wait_for_workflow(
+        self,
+        workflow_id: str,
+        *,
+        timeout_seconds: float,
+        on_poll: Callable[[dict[str, Any], float], Awaitable[None] | None] | None = None,
+    ) -> dict[str, Any]:
+        """Poll a managed workflow until it reaches a terminal state with deliverable output."""
+        loop = asyncio.get_running_loop()
+        started = loop.time()
+        interval = 2.0
+        while True:
+            elapsed = loop.time() - started
+            if elapsed > timeout_seconds:
+                raise SpicyApiError(
+                    f"workflow {workflow_id} did not finish within {int(timeout_seconds)} seconds; it may "
+                    "still be running on SpicyAPI. Check it in the console under Logs."
+                )
+            try:
+                workflow = await self.get_workflow(workflow_id)
+            except SpicyApiError as error:
+                if error.status and error.status < 500 and error.status not in (408, 429):
+                    raise
+                workflow = None
+            if workflow is not None:
+                if on_poll is not None:
+                    result = on_poll(workflow, elapsed)
+                    if asyncio.iscoroutine(result):
+                        await result
+                state = workflow.get("state")
+                if state in TERMINAL_STATES and not _has_pending_assets(workflow):
+                    return workflow
+                if state not in TERMINAL_STATES and state not in ACTIVE_STATES:
+                    raise SpicyApiError(f"unknown workflow state {state!r} for workflow {workflow_id}")
+            await interruptible_sleep(interval, self.interrupt_check)
+            interval = min(interval * 1.5, 10.0)
+
     # -- Files ------------------------------------------------------------
+
+    async def download_url(self, url: str, *, download: bool = False) -> dict[str, Any]:
+        """Refresh a short-lived signed download URL for an output asset."""
+        body: dict[str, Any] = {"url": url}
+        if download:
+            body["download"] = True
+        return await self.request("POST", "/api/v1/common/download-url", body=body)
 
     async def upload(self, data: bytes, content_type: str) -> str:
         """Ticket, PUT and commit. Returns the ``spicy://`` URI that goes into task input."""
